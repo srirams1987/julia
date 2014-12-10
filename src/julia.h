@@ -1079,10 +1079,12 @@ DLLEXPORT int64_t jl_gc_total_bytes(void);
 DLLEXPORT uint64_t jl_gc_total_hrtime(void);
 int64_t diff_gc_total_bytes(void);
 void sync_gc_total_bytes(void);
-DLLEXPORT void jl_gc_collect(void);
+
+DLLEXPORT void jl_gc_collect(int);
 DLLEXPORT void jl_gc_preserve(jl_value_t *v);
 DLLEXPORT void jl_gc_unpreserve(void);
 DLLEXPORT int jl_gc_n_preserved_values(void);
+
 DLLEXPORT void jl_gc_add_finalizer(jl_value_t *v, jl_function_t *f);
 DLLEXPORT void jl_finalize(jl_value_t *o);
 DLLEXPORT jl_weakref_t *jl_gc_new_weakref(jl_value_t *value);
