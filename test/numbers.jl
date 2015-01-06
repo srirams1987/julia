@@ -2086,3 +2086,9 @@ end
 let x = big(-0.0)
     @test signbit(x) && !signbit(abs(x))
 end
+
+# Issue #9618: errors thrown by large exponentiations
+@test_throws DomainError big(2)^-(big(typemax(Uint))+1)
+@test_throws OverflowError big(2)^(big(typemax(Uint))+1)
+@test 0==big(0)^(big(typemax(Uint))+1)
+
