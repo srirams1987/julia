@@ -74,6 +74,11 @@ typedef struct _jl_sym_t {
     JL_ATTRIBUTE_ALIGN_PTRSIZE(char name[]);
 } jl_sym_t;
 
+typedef struct _jl_gensym_t {
+    JL_DATA_TYPE
+    size_t id;
+} jl_gensym_t;
+
 typedef struct {
 #ifdef OVERLAP_TUPLE_LEN
     size_t type : 52;
@@ -304,6 +309,7 @@ extern DLLEXPORT jl_datatype_t *jl_typename_type;
 extern DLLEXPORT jl_datatype_t *jl_typector_type;
 extern DLLEXPORT jl_datatype_t *jl_sym_type;
 extern DLLEXPORT jl_datatype_t *jl_symbol_type;
+extern DLLEXPORT jl_datatype_t *jl_gensym_type;
 extern DLLEXPORT jl_tuple_t *jl_tuple_type;
 extern DLLEXPORT jl_value_t *jl_tupletype_type;
 extern DLLEXPORT jl_datatype_t *jl_ntuple_type;
@@ -500,6 +506,7 @@ extern jl_sym_t *arrow_sym; extern jl_sym_t *ldots_sym;
 #define jl_is_float64(v)     jl_typeis(v,jl_float64_type)
 #define jl_is_bool(v)        jl_typeis(v,jl_bool_type)
 #define jl_is_symbol(v)      jl_typeis(v,jl_sym_type)
+#define jl_is_gensym(v)      jl_typeis(v,jl_gensym_type)
 #define jl_is_expr(v)        jl_typeis(v,jl_expr_type)
 #define jl_is_symbolnode(v)  jl_typeis(v,jl_symbolnode_type)
 #define jl_is_getfieldnode(v)  jl_typeis(v,jl_getfieldnode_type)

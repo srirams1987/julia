@@ -272,6 +272,7 @@ GotoNode(n::Int) = ccall(:jl_new_struct, Any, (Any,Any...), GotoNode, n)::GotoNo
 QuoteNode(x::ANY) = ccall(:jl_new_struct, Any, (Any,Any...), QuoteNode, x)::QuoteNode
 NewvarNode(s::Symbol) = ccall(:jl_new_struct, Any, (Any,Any...), NewvarNode, s)::NewvarNode
 TopNode(s::Symbol) = ccall(:jl_new_struct, Any, (Any,Any...), TopNode, s)::TopNode
+GenSym(s::Int) = ccall(:jl_new_struct, Any, (Any,Any...), GenSym, s)::GenSym
 
 Module(name::Symbol) = ccall(:jl_f_new_module, Any, (Any,), name)::Module
 Module() = Module(:anonymous)
