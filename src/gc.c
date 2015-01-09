@@ -1148,7 +1148,7 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
     freedall = 1;
     old_nfree += pg->nfree;
     prev_pfl = pfl;
-    int pg_gc_bits = 0;
+
     if (pg->gc_bits == GC_MARKED) {
         // this page only contains GC_MARKED and free cells
         // if we are doing a quick sweep and nothing has been allocated inside since last sweep
@@ -1161,7 +1161,6 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
             }
             pg_skpd++;
             freedall = 0;
-            pg_gc_bits = GC_MARKED;
             goto free_page;
         }
     }
@@ -1171,7 +1170,6 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
 
     int pg_nfree = 0;
     gcval_t **pfl_begin = NULL;
-    int age_i = 0; // current age byte
     unsigned char msk = 1; // mask for the age bit in the current age byte
     while ((char*)v <= lim) {
         int bits = gc_bits(v);
@@ -1180,29 +1178,25 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
             pfl = &v->next;
             pfl_begin = pfl_begin ? pfl_begin : pfl;
             pg_nfree++;
-            ages[age_i] &= ~msk;
+            *ages &= ~msk;
         }
-        else {
-            if (ages[age_i] & msk) {
+        else { // marked young or old
+            if (*ages & msk) { // old enough
                 if (sweep_mask == GC_MARKED || bits == GC_MARKED_NOESC) {
-                    gc_bits(v) = GC_QUEUED;
-                } else {
-                    pg_gc_bits = GC_MARKED;
+                    gc_bits(v) = GC_QUEUED; // promote
                 }
             }
             else if ((sweep_mask & bits) == sweep_mask) {
-                gc_bits(v) = GC_CLEAN;
-            } else {
-                pg_gc_bits = GC_MARKED;
+                gc_bits(v) = GC_CLEAN; // unmark
             }
-            ages[age_i] |= msk;
+            *ages |= msk;
             freedall = 0;
         }
         v = (gcval_t*)((char*)v + osize);
         msk *= 2;
         if (!msk) {
             msk = 1;
-            age_i++;
+            ages++;
         }
     }
 
@@ -1246,7 +1240,10 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
         nfree += obj_per_page;
     }
     else {
-        pg->gc_bits = pg_gc_bits;
+        if (sweep_mask == GC_MARKED)
+            pg->gc_bits = GC_CLEAN;
+        if (sweep_mask == GC_MARKED_NOESC)
+            pg->gc_bits = GC_MARKED;
         nfree += pg->nfree;
     }
 
