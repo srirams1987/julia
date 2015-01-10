@@ -468,7 +468,7 @@ static __attribute__((noinline)) void *malloc_page(void)
         heap = heaps[heap_i];
         if (heap == NULL) {
 #ifdef _OS_WINDOWS_
-            char* mem = VirtualAlloc(NULL, sizeof(region_t) + GC_PAGE_SZ*32, MEM_RESERVE, PAGE_READWRITE);
+            char* mem = VirtualAlloc(NULL, sizeof(region_t) + GC_PAGE_SZ, MEM_RESERVE, PAGE_READWRITE);
 #else
             char* mem = mmap(0, sizeof(region_t) + GC_PAGE_SZ, PROT_READ | PROT_WRITE, MAP_NORESERVE | MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
             mem = mem == MAP_FAILED ? NULL : mem;
@@ -477,11 +477,11 @@ static __attribute__((noinline)) void *malloc_page(void)
                 jl_printf(JL_STDERR, "could not allocate pools\n");
                 abort();
             }
-            // we may waste up to around 500k of virtual address space for alignment but those pages are never committed
             heap = (region_t*)((char*)GC_PAGE_DATA(mem + REGION_PG_COUNT/8 + GC_PAGE_SZ - 1) - REGION_PG_COUNT/8);
             heaps[heap_i] = heap;
 #ifdef _OS_WINDOWS_
             VirtualAlloc(heap->freemap, REGION_PG_COUNT/8, MEM_COMMIT, PAGE_READWRITE);
+            VirtualAlloc(heap->meta, REGION_PG_COUNT*sizeof(gcpage_t) + ((size_t)REGION_PG_COUNT)*(GC_PAGE_SZ/(8*8)), MEM_COMMIT, PAGE_READWRITE);
 #endif
             memset(heap->freemap, 0xff, REGION_PG_COUNT/8);
         }
