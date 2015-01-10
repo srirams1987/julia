@@ -68,15 +68,6 @@ function eval_user_input(ast::ANY, backend::REPLBackend)
 end
 
 function parse_input_line(s::AbstractString)
-    # s = bytestring(s)
-    # (expr, pos) = parse(s, 1)
-    # (ex, pos) = ccall(:jl_parse_string, Any,
-    #                   (Ptr{UInt8},Int32,Int32),
-    #                   s, int32(pos)-1, 1)
-    # if !is(ex,())
-    #     throw(ParseError("extra input after end of expression"))
-    # end
-    # expr
     ccall(:jl_parse_input_line, Any, (Ptr{UInt8},), s)
 end
 

@@ -222,6 +222,12 @@ using .I18n
 using .Help
 push!(I18n.CALLBACKS, Help.clear_cache)
 
+# parser
+include("lexer.jl")
+using .Lexer
+include("parser.jl")
+using .Parser
+
 # frontend
 include("Terminals.jl")
 include("LineEdit.jl")
