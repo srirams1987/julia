@@ -65,6 +65,7 @@ typedef struct _gcpage_t {
     uint16_t fl_begin_offset;
     uint16_t fl_end_offset;
     char *data;
+    char *ages;
 } gcpage_t;
 
 #define PAGE_PFL_BEG(p) ((gcval_t**)((p->data) + (p)->fl_begin_offset))
@@ -85,7 +86,6 @@ typedef struct {
     uint32_t freemap[REGION_PG_COUNT/32];
     char pages[REGION_PG_COUNT][GC_PAGE_SZ];
     gcpage_t meta[REGION_PG_COUNT];
-    char age[REGION_PG_COUNT][GC_PAGE_SZ/(8*8)]; // one bit per object
 } region_t;
 static region_t *heaps[HEAP_COUNT] = {NULL};
 // store a lower bound of the first free block in each region
@@ -119,9 +119,7 @@ gcpage_t *page_metadata(void *data)
 
 char *page_age(gcpage_t *pg)
 {
-    region_t *r = find_region(pg);
-    int pg_idx = ((char*)pg - (char*)&r->meta[0])/sizeof(gcpage_t);
-    return &r->age[pg_idx][0];
+    return pg->ages;
 }
 
 #define GC_POOL_END_OFS(osize) (((GC_PAGE_SZ/osize) - 1)*osize)
@@ -481,7 +479,7 @@ static __attribute__((noinline)) void *malloc_page(void)
             heaps[heap_i] = heap;
 #ifdef _OS_WINDOWS_
             VirtualAlloc(heap->freemap, REGION_PG_COUNT/8, MEM_COMMIT, PAGE_READWRITE);
-            VirtualAlloc(heap->meta, REGION_PG_COUNT*sizeof(gcpage_t) + ((size_t)REGION_PG_COUNT)*(GC_PAGE_SZ/(8*8)), MEM_COMMIT, PAGE_READWRITE);
+            VirtualAlloc(heap->meta, REGION_PG_COUNT*sizeof(gcpage_t), MEM_COMMIT, PAGE_READWRITE);
 #endif
             memset(heap->freemap, 0xff, REGION_PG_COUNT/8);
         }
@@ -536,6 +534,7 @@ static void free_page(void *p)
     uint32_t msk = (uint32_t)(1 << ((pg_idx % 32)));
     assert(!(heap->freemap[pg_idx/32] & msk));
     heap->freemap[pg_idx/32] ^= msk;
+    free(heap->meta[pg_idx].ages);
 #ifdef _OS_WINDOWS_
     VirtualFree(p, GC_PAGE_SZ, MEM_DECOMMIT);
 #else
@@ -929,31 +928,12 @@ static void sweep_malloced_arrays(void)
 }
 
 // pool allocation
-#ifdef __SSE__
-#include <emmintrin.h>
-#endif
-// gcc/libc doesn't do this (on this setup at least)
-// even with __builtin_assume_aligned
-// surprisingly it did show up while profiling
-// assumes p is 16-bytes aligned and sz % 16 == 0
-static inline void bzero_small_a16(char *p, size_t sz)
-{
-#ifndef __SSE__
-    memset(p, 0, sz);
-#else
-    __m128i c = _mm_set1_epi8(0);
-    for(int i=0; i < sz/16; i++)
-        _mm_store_si128((__m128i*)p, c);
-#endif
-}
-
 static inline gcval_t *reset_page(pool_t *p, gcpage_t *pg, gcval_t *fl)
 {
     pg->gc_bits = 0;
     pg->nfree = GC_PAGE_SZ/p->osize;
     pg->pool_n = p - norm_pools;
-    bzero_small_a16(page_age(pg), GC_PAGE_SZ/(8*8));
-    //memset(page_age(pg), 0, 2*GC_PAGE_SZ/(8*8));
+    memset(page_age(pg), 0, (GC_PAGE_SZ/p->osize + 7)/8);
     gcval_t *beg = (gcval_t*)pg->data;
     gcval_t *end = (gcval_t*)((char*)beg + (pg->nfree - 1)*p->osize);
     end->next = fl;
@@ -971,6 +951,7 @@ static __attribute__((noinline)) void  add_page(pool_t *p)
     gcpage_t *pg = page_metadata(data);
     pg->data = data;
     pg->osize = p->osize;
+    pg->ages = malloc((GC_PAGE_SZ/p->osize + 7)/8);
     gcval_t *fl = reset_page(p, pg, p->newpages);
     p->newpages = fl;
 }
