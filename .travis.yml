@@ -2,6 +2,8 @@ language: cpp
 os:
     - linux
     - osx
+env:
+    - JULIA_CPU_CORES=1
 notifications:
     email: false
     irc:
