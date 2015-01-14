@@ -1128,7 +1128,6 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
     char *lim = (char*)v + GC_PAGE_SZ - osize;
     freedall = 1;
     old_nfree += pg->nfree;
-    prev_pfl = pfl;
 
     if (pg->gc_bits == GC_MARKED) {
         // this page only contains GC_MARKED and free cells
@@ -1198,7 +1197,6 @@ static gcval_t** sweep_page(pool_t* p, gcpage_t* pg, gcval_t **pfl, int sweep_ma
         // on quick sweeps, keep a few pages empty but allocated for performance
         if (sweep_mask == GC_MARKED_NOESC && lazy_freed_pages <= default_collect_interval/GC_PAGE_SZ) {
             gcval_t *begin = reset_page(p, pg, 0);
-            *prev_pfl = begin;
             gcval_t** pend = (gcval_t**)((char*)begin + ((int)pg->nfree - 1)*osize);
             gcval_t* npg = p->newpages;
             *pend = npg;
