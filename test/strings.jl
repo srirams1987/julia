@@ -1305,3 +1305,11 @@ for T in (ASCIIString, UTF8String, UTF16String, UTF32String)
         end
     end
 end
+
+# issue #9781
+# float(SubString) wasn't tolerant of trailing whitespace, which was different
+# to "normal" strings. This also checks we aren't being too tolerant and allowing
+# any arbitrary trailing characters.
+@test float("1\n") == 1.0
+@test float(split("0,1\n",","))[2] == 1.0
+@test_throws ArgumentError float(split("0,1 X\n",","))[2]
